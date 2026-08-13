@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,6 +21,16 @@
       </div>
     </header>
 
+    <section class="card keyqty-card">
+      <h3>Key Qty Today's Achievement</h3>
+      <div class="keyqty-summary">
+        <div class="kq-stat kq-achieved"><span id="kqAchieved">0</span><label>Achieved</label></div>
+        <div class="kq-stat kq-not-achieved"><span id="kqNotAchieved">0</span><label>Not Achieved</label></div>
+        <div class="kq-stat kq-not-started"><span id="kqNotStarted">0</span><label>Not Started</label></div>
+      </div>
+      <div id="keyqtyGrid" class="keyqty-grid"></div>
+    </section>
+
     <section class="card selector-card">
       <label for="disciplineSelect" class="selector-label">Select Key Qty</label>
       <select id="disciplineSelect"></select>
@@ -28,7 +38,7 @@
 
     <section class="kpi-row">
       <div class="card kpi-progress">
-        <div class="kpi-label">Progress (선택 항목 기준)</div>
+        <div class="kpi-label">Progress (Selected Item)</div>
         <div class="progress-bar-outer">
           <div id="overallProgressBar" class="progress-bar-inner" style="width:0%">0%</div>
         </div>
@@ -43,7 +53,7 @@
         <div class="kpi-value"><span id="kpiMpActual">-</span> / <span id="kpiMpPlan">-</span></div>
       </div>
       <div class="card kpi-small">
-        <div class="kpi-label">오늘 상태</div>
+        <div class="kpi-label">Today's Status</div>
         <div class="kpi-value"><span id="kpiStatusBadge" class="badge">-</span></div>
       </div>
     </section>
@@ -64,7 +74,7 @@
     </section>
 
     <section class="card table-card">
-      <h3>Progress Status (빨간색 = Behind / Yet)</h3>
+      <h3>Progress Status (Red = Behind / Yet)</h3>
       <div class="table-scroll">
         <table id="progressTable">
           <thead>
@@ -80,19 +90,9 @@
       </div>
     </section>
 
-    <section class="card keyqty-card">
-      <h3>Key Qty 오늘 달성 현황</h3>
-      <div class="keyqty-summary">
-        <div class="kq-stat kq-achieved"><span id="kqAchieved">0</span><label>Achieved</label></div>
-        <div class="kq-stat kq-not-achieved"><span id="kqNotAchieved">0</span><label>Not Achieved</label></div>
-        <div class="kq-stat kq-not-started"><span id="kqNotStarted">0</span><label>Not Started</label></div>
-      </div>
-      <div id="keyqtyGrid" class="keyqty-grid"></div>
-    </section>
-
     <section class="bottom-row">
       <div class="card bottom-card">
-        <h3>Issue Tracking (Discipline별)</h3>
+        <h3>Issue Tracking (by Discipline)</h3>
         <div class="pie-and-table">
           <div class="chart-wrap"><canvas id="issuePie"></canvas></div>
           <table id="issueSummaryTable">
@@ -100,13 +100,20 @@
             <tbody></tbody>
           </table>
         </div>
-        <table class="detail-table" id="issueListTable">
-          <thead><tr><th>No</th><th>Title</th><th>Discipline</th><th>Due Date</th><th>Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="filter-row">
+          <label for="issueFilter">Filter by Discipline</label>
+          <select id="issueFilter"><option value="">All Disciplines</option></select>
+          <span id="issueCount" class="filter-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="detail-table" id="issueListTable">
+            <thead><tr><th>No</th><th>Title</th><th>Discipline</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="card bottom-card">
-        <h3>Walkthrough Action Items (Responsibility별)</h3>
+        <h3>Walkthrough Action Items (by Responsibility)</h3>
         <div class="pie-and-table">
           <div class="chart-wrap"><canvas id="walkthroughPie"></canvas></div>
           <table id="walkthroughSummaryTable">
@@ -114,20 +121,27 @@
             <tbody></tbody>
           </table>
         </div>
-        <table class="detail-table" id="walkthroughListTable">
-          <thead><tr><th>No</th><th>Unit</th><th>Item</th><th>Resp.</th><th>Due Date</th><th>Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="filter-row">
+          <label for="walkthroughFilter">Filter by Responsibility</label>
+          <select id="walkthroughFilter"><option value="">All Responsibilities</option></select>
+          <span id="walkthroughCount" class="filter-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="detail-table" id="walkthroughListTable">
+            <thead><tr><th>No</th><th>Unit</th><th>Item</th><th>Resp.</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <section class="card">
       <h3>Welder Mobilization Status</h3>
-      <p class="placeholder-note">실제 데이터 연결 후 표시될 영역입니다.</p>
+      <p class="placeholder-note">This section will be populated once connected to live data.</p>
     </section>
 
     <footer class="footnote">
-      데이터 출처: 담당자 입력 Excel (OneDrive 연동 예정) · 매일 1회 수동 새로고침
+      Data source: Excel maintained by site team (OneDrive integration planned) · Manual refresh once daily
     </footer>
   </div>
 

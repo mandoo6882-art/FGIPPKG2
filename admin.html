@@ -219,6 +219,129 @@ function parseSummaryTables(rows) {
   return { issueSummary, walkthroughSummary };
 }
 
+function findFlexibleHeader(rows, aliasGroups, maxScanRows) {
+  // aliasGroups: { key: [alias1, alias2, ...] }
+  let best = { rowIdx: -1, colMap: {}, score: -1 };
+  const limit = Math.min(rows.length, maxScanRows || 15);
+  for (let r = 0; r < limit; r++) {
+    const norms = rows[r].map(norm);
+    const colMap = {};
+    let score = 0;
+    for (const key in aliasGroups) {
+      let foundCol = -1;
+      for (const alias of aliasGroups[key]) {
+        const idx = norms.indexOf(norm(alias));
+        if (idx >= 0) { foundCol = idx; break; }
+      }
+      if (foundCol >= 0) { colMap[key] = foundCol; score++; }
+    }
+    if (score > best.score) best = { rowIdx: r, colMap, score };
+  }
+  return best;
+}
+
+function isClosed(statusText) {
+  const t = norm(statusText);
+  return t.includes("closed") || t.includes("complete") || t.includes("done");
+}
+
+function parseIssueSheet(wb) {
+  const sheetName = wb.SheetNames.find(n => norm(n) === "issue");
+  if (!sheetName) {
+    addMsg('"Issue" 시트를 찾지 못했습니다.', "warn");
+    return null;
+  }
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "" });
+  const aliasGroups = {
+    no: ["no", "no.", "item no", "issue no"],
+    unit: ["unit", "train", "area"],
+    discipline: ["discipline"],
+    title: ["title", "description", "issue", "item", "remarks"],
+    dueDate: ["due date", "duedate", "date"],
+    status: ["status"]
+  };
+  const best = findFlexibleHeader(rows, aliasGroups, 15);
+  if (best.rowIdx === -1 || best.score < 3 || best.colMap.status == null) {
+    addMsg('"Issue" 시트에서 표 헤더를 찾지 못했습니다 (No/Discipline/Title/Due Date/Status 필요). 이전 값을 유지합니다.', "warn");
+    return null;
+  }
+  const cols = best.colMap;
+  const anchorCol = cols.no != null ? cols.no : cols.status;
+  const out = [];
+  let excluded = 0;
+  for (let r = best.rowIdx + 1; r < rows.length; r++) {
+    const anchorVal = rows[r][anchorCol];
+    const rowIsEmpty = rows[r].every(c => String(c).trim() === "");
+    if (rowIsEmpty) break;
+    if (anchorVal == null || String(anchorVal).trim() === "") continue;
+    const statusVal = cols.status != null ? rows[r][cols.status] : "";
+    if (isClosed(statusVal)) { excluded++; continue; }
+    out.push({
+      no: cols.no != null ? rows[r][cols.no] : out.length + 1,
+      unit: cols.unit != null ? String(rows[r][cols.unit]).trim() : "",
+      title: cols.title != null ? String(rows[r][cols.title]).trim() : "",
+      discipline: cols.discipline != null ? String(rows[r][cols.discipline]).trim() : "",
+      dueDate: cols.dueDate != null ? String(rows[r][cols.dueDate]).trim() : "",
+      status: cols.status != null ? String(rows[r][cols.status]).trim() : ""
+    });
+  }
+  if (out.length === 0) {
+    addMsg('"Issue" 시트 헤더는 찾았지만 표시할 항목이 없습니다 (모두 Closed 이거나 데이터 없음).', "warn");
+    return [];
+  }
+  addMsg(`Issue 상세 목록: ${out.length}건 인식 완료 (Closed ${excluded}건 제외)`, "ok");
+  return out;
+}
+
+function parseWalkthroughSheet(wb) {
+  const sheetName = wb.SheetNames.find(n => norm(n) === "walkthrough");
+  if (!sheetName) {
+    addMsg('"Walkthrough" 시트를 찾지 못했습니다.', "warn");
+    return null;
+  }
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "" });
+  const aliasGroups = {
+    no: ["no", "no."],
+    unit: ["unit", "train", "area"],
+    date: ["date", "found date"],
+    item: ["item", "description", "title"],
+    responsibility: ["responsibility", "responsible"],
+    dueDate: ["due date", "duedate"],
+    status: ["status"]
+  };
+  const best = findFlexibleHeader(rows, aliasGroups, 15);
+  if (best.rowIdx === -1 || best.score < 3 || best.colMap.status == null) {
+    addMsg('"Walkthrough" 시트에서 표 헤더를 찾지 못했습니다 (No/Responsibility/Item/Due Date/Status 필요). 이전 값을 유지합니다.', "warn");
+    return null;
+  }
+  const cols = best.colMap;
+  const anchorCol = cols.no != null ? cols.no : cols.status;
+  const out = [];
+  let excluded = 0;
+  for (let r = best.rowIdx + 1; r < rows.length; r++) {
+    const anchorVal = rows[r][anchorCol];
+    const rowIsEmpty = rows[r].every(c => String(c).trim() === "");
+    if (rowIsEmpty) break;
+    if (anchorVal == null || String(anchorVal).trim() === "") continue;
+    const statusVal = cols.status != null ? rows[r][cols.status] : "";
+    if (isClosed(statusVal)) { excluded++; continue; }
+    out.push({
+      no: cols.no != null ? rows[r][cols.no] : out.length + 1,
+      unit: cols.unit != null ? String(rows[r][cols.unit]).trim() : "",
+      item: cols.item != null ? String(rows[r][cols.item]).trim() : "",
+      responsibility: cols.responsibility != null ? String(rows[r][cols.responsibility]).trim() : "",
+      dueDate: cols.dueDate != null ? String(rows[r][cols.dueDate]).trim() : "",
+      status: cols.status != null ? String(rows[r][cols.status]).trim() : ""
+    });
+  }
+  if (out.length === 0) {
+    addMsg('"Walkthrough" 시트 헤더는 찾았지만 표시할 항목이 없습니다 (모두 Closed 이거나 데이터 없음).', "warn");
+    return [];
+  }
+  addMsg(`Walkthrough 상세 목록: ${out.length}건 인식 완료 (Closed ${excluded}건 제외)`, "ok");
+  return out;
+}
+
 async function getPreviousData() {
   try {
     const res = await fetch("./data.json", { cache: "no-store" });
@@ -252,20 +375,23 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
     const previous = await getPreviousData();
     const disciplines = parseProgressTable(rows);
     const { issueSummary, walkthroughSummary } = parseSummaryTables(rows);
+    const issueList = parseIssueSheet(wb);
+    const walkthroughList = parseWalkthroughSheet(wb);
 
     parsedData = {
       projectInfo: (previous && previous.projectInfo) || { cutoff: "", categories: "" },
       disciplines: disciplines || (previous && previous.disciplines) || [],
       issueSummary: issueSummary || (previous && previous.issueSummary) || [],
-      issueList: (previous && previous.issueList) || [],
+      issueList: issueList || (previous && previous.issueList) || [],
       walkthroughSummary: walkthroughSummary || (previous && previous.walkthroughSummary) || [],
-      walkthroughList: (previous && previous.walkthroughList) || []
+      walkthroughList: walkthroughList || (previous && previous.walkthroughList) || []
     };
 
     if (!disciplines) addMsg("Progress Status는 이전 data.json 값을 그대로 유지했습니다.", "warn");
     if (!issueSummary) addMsg("Issue 요약은 이전 data.json 값을 그대로 유지했습니다.", "warn");
     if (!walkthroughSummary) addMsg("Walkthrough 요약은 이전 data.json 값을 그대로 유지했습니다.", "warn");
-    addMsg("Issue/Walkthrough 상세 목록은 자동 인식 대상이 아니라 이전 값을 유지합니다 (필요 시 data.json을 직접 수정).", "warn");
+    if (!issueList) addMsg("Issue 상세 목록은 이전 data.json 값을 그대로 유지했습니다.", "warn");
+    if (!walkthroughList) addMsg("Walkthrough 상세 목록은 이전 data.json 값을 그대로 유지했습니다.", "warn");
 
     document.getElementById("preview").textContent = JSON.stringify(parsedData, null, 2);
     document.getElementById("downloadBtn").disabled = false;

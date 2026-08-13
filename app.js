@@ -174,6 +174,17 @@ function renderPie(canvasId, key, labels, values) {
   });
 }
 
+function renderIssueList(list) {
+  const listBody = document.querySelector("#issueListTable tbody");
+  listBody.innerHTML = "";
+  list.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${r.no}</td><td>${r.title}</td><td>${r.discipline}</td><td>${r.dueDate}</td><td>${r.status}</td>`;
+    listBody.appendChild(tr);
+  });
+  document.getElementById("issueCount").textContent = list.length + " item(s)";
+}
+
 function renderIssueSection(data) {
   const tbody = document.querySelector("#issueSummaryTable tbody");
   tbody.innerHTML = "";
@@ -186,13 +197,26 @@ function renderIssueSection(data) {
     data.issueSummary.map(r => r.discipline),
     data.issueSummary.map(r => r.open));
 
-  const listBody = document.querySelector("#issueListTable tbody");
+  const filter = document.getElementById("issueFilter");
+  const disciplines = Array.from(new Set(data.issueList.map(r => r.discipline).filter(Boolean))).sort();
+  filter.innerHTML = '<option value="">All Disciplines</option>' +
+    disciplines.map(d => `<option value="${d}">${d}</option>`).join("");
+  filter.onchange = () => {
+    const v = filter.value;
+    renderIssueList(v ? data.issueList.filter(r => r.discipline === v) : data.issueList);
+  };
+  renderIssueList(data.issueList);
+}
+
+function renderWalkthroughList(list) {
+  const listBody = document.querySelector("#walkthroughListTable tbody");
   listBody.innerHTML = "";
-  data.issueList.forEach(r => {
+  list.forEach(r => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${r.no}</td><td>${r.title}</td><td>${r.discipline}</td><td>${r.dueDate}</td><td>${r.status}</td>`;
+    tr.innerHTML = `<td>${r.no}</td><td>${r.unit}</td><td>${r.item}</td><td>${r.responsibility}</td><td>${r.dueDate}</td><td>${r.status}</td>`;
     listBody.appendChild(tr);
   });
+  document.getElementById("walkthroughCount").textContent = list.length + " item(s)";
 }
 
 function renderWalkthroughSection(data) {
@@ -207,13 +231,15 @@ function renderWalkthroughSection(data) {
     data.walkthroughSummary.map(r => r.responsibility),
     data.walkthroughSummary.map(r => r.open));
 
-  const listBody = document.querySelector("#walkthroughListTable tbody");
-  listBody.innerHTML = "";
-  data.walkthroughList.forEach(r => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${r.no}</td><td>${r.unit}</td><td>${r.item}</td><td>${r.responsibility}</td><td>${r.dueDate}</td><td>${r.status}</td>`;
-    listBody.appendChild(tr);
-  });
+  const filter = document.getElementById("walkthroughFilter");
+  const resps = Array.from(new Set(data.walkthroughList.map(r => r.responsibility).filter(Boolean))).sort();
+  filter.innerHTML = '<option value="">All Responsibilities</option>' +
+    resps.map(r => `<option value="${r}">${r}</option>`).join("");
+  filter.onchange = () => {
+    const v = filter.value;
+    renderWalkthroughList(v ? data.walkthroughList.filter(r => r.responsibility === v) : data.walkthroughList);
+  };
+  renderWalkthroughList(data.walkthroughList);
 }
 
 function showErrorBanner(message) {
@@ -224,7 +250,7 @@ function showErrorBanner(message) {
     el.style.cssText = "background:#fbe1e1;color:#c0392b;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;white-space:pre-wrap;";
     document.querySelector(".wrap").prepend(el);
   }
-  el.textContent = "오류: " + message;
+  el.textContent = "Error: " + message;
   el.style.display = "block";
 }
 function hideErrorBanner() {
@@ -235,17 +261,17 @@ function hideErrorBanner() {
 async function refreshDashboard() {
   const btn = document.getElementById("refreshBtn");
   btn.disabled = true;
-  btn.textContent = "불러오는 중...";
+  btn.textContent = "Loading...";
   hideErrorBanner();
 
   try {
     if (typeof Chart === "undefined") {
-      throw new Error("차트 라이브러리(Chart.js)를 불러오지 못했습니다. 인터넷/방화벽 문제일 수 있습니다. 페이지를 새로고침해서 다시 시도해 주세요.");
+      throw new Error("Could not load the chart library (Chart.js). This may be a network/firewall issue. Please refresh the page and try again.");
     }
 
     currentData = await loadData();
     if (!currentData || !currentData.disciplines || currentData.disciplines.length === 0) {
-      throw new Error("데이터를 불러오지 못했습니다 (data.json이 비어있거나 형식이 올바르지 않습니다).");
+      throw new Error("Could not load data (data.json is empty or has an invalid format).");
     }
     if (!selectedDiscipline || !currentData.disciplines.some(d => d.name === selectedDiscipline)) {
       selectedDiscipline = currentData.disciplines[0].name;
@@ -259,7 +285,7 @@ async function refreshDashboard() {
     renderIssueSection(currentData);
     renderWalkthroughSection(currentData);
 
-    document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("ko-KR");
+    document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("en-US");
   } catch (err) {
     console.error(err);
     showErrorBanner((err && err.message) ? err.message : String(err));
