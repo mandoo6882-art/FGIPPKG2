@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Daily Progress Dashboard</title>
 <link rel="stylesheet" href="style.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" onerror="this.onerror=null;document.write('<script src=\'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js\'><\/script>')"></script>
 </head>
 <body>
   <div class="wrap">
@@ -51,15 +51,15 @@
     <section class="charts-row">
       <div class="card chart-card">
         <h3>Daily (Plan vs Actual)</h3>
-        <canvas id="dailyChart"></canvas>
+        <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
       </div>
       <div class="card chart-card">
         <h3>Cumulative (Plan vs Actual)</h3>
-        <canvas id="cumulativeChart"></canvas>
+        <div class="chart-wrap"><canvas id="cumulativeChart"></canvas></div>
       </div>
       <div class="card chart-card">
         <h3>MP (Plan vs Actual)</h3>
-        <canvas id="mpChart"></canvas>
+        <div class="chart-wrap"><canvas id="mpChart"></canvas></div>
       </div>
     </section>
 
@@ -94,7 +94,7 @@
       <div class="card bottom-card">
         <h3>Issue Tracking (Discipline별)</h3>
         <div class="pie-and-table">
-          <canvas id="issuePie"></canvas>
+          <div class="chart-wrap"><canvas id="issuePie"></canvas></div>
           <table id="issueSummaryTable">
             <thead><tr><th>Discipline</th><th>Total</th><th>Done</th><th>Open</th></tr></thead>
             <tbody></tbody>
@@ -108,7 +108,7 @@
       <div class="card bottom-card">
         <h3>Walkthrough Action Items (Responsibility별)</h3>
         <div class="pie-and-table">
-          <canvas id="walkthroughPie"></canvas>
+          <div class="chart-wrap"><canvas id="walkthroughPie"></canvas></div>
           <table id="walkthroughSummaryTable">
             <thead><tr><th>Resp.</th><th>Total</th><th>Done</th><th>Open</th></tr></thead>
             <tbody></tbody>

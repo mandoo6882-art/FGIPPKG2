@@ -133,7 +133,7 @@ body {
   margin-top: 16px;
 }
 .chart-card h3 { margin: 0 0 10px 0; font-size: 13.5px; color: var(--navy); }
-.chart-card canvas { max-height: 200px; }
+.chart-card .chart-wrap { position: relative; height: 200px; }
 
 .table-card h3 { margin: 0 0 12px 0; font-size: 14px; color: var(--navy); }
 .table-scroll { overflow-x: auto; }
@@ -182,7 +182,7 @@ tr.status-behind, tr.status-yet { background: var(--red-bg); color: var(--red); 
   align-items: start;
   margin-bottom: 14px;
 }
-.pie-and-table canvas { max-height: 170px; }
+.pie-and-table .chart-wrap { position: relative; height: 170px; }
 .pie-and-table table { font-size: 12px; }
 
 .detail-table { font-size: 11.5px; }

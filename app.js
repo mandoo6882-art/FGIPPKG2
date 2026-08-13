@@ -216,27 +216,57 @@ function renderWalkthroughSection(data) {
   });
 }
 
+function showErrorBanner(message) {
+  let el = document.getElementById("errorBanner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "errorBanner";
+    el.style.cssText = "background:#fbe1e1;color:#c0392b;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;white-space:pre-wrap;";
+    document.querySelector(".wrap").prepend(el);
+  }
+  el.textContent = "오류: " + message;
+  el.style.display = "block";
+}
+function hideErrorBanner() {
+  const el = document.getElementById("errorBanner");
+  if (el) el.style.display = "none";
+}
+
 async function refreshDashboard() {
   const btn = document.getElementById("refreshBtn");
   btn.disabled = true;
   btn.textContent = "불러오는 중...";
+  hideErrorBanner();
 
-  currentData = await loadData();
-  if (!selectedDiscipline || !currentData.disciplines.some(d => d.name === selectedDiscipline)) {
-    selectedDiscipline = currentData.disciplines[0].name;
+  try {
+    if (typeof Chart === "undefined") {
+      throw new Error("차트 라이브러리(Chart.js)를 불러오지 못했습니다. 인터넷/방화벽 문제일 수 있습니다. 페이지를 새로고침해서 다시 시도해 주세요.");
+    }
+
+    currentData = await loadData();
+    if (!currentData || !currentData.disciplines || currentData.disciplines.length === 0) {
+      throw new Error("데이터를 불러오지 못했습니다 (data.json이 비어있거나 형식이 올바르지 않습니다).");
+    }
+    if (!selectedDiscipline || !currentData.disciplines.some(d => d.name === selectedDiscipline)) {
+      selectedDiscipline = currentData.disciplines[0].name;
+    }
+
+    renderProjectInfo(currentData);
+    populateSelector(currentData.disciplines);
+    renderSelectedDiscipline();
+    renderProgressTable(currentData.disciplines);
+    renderKeyQty(currentData.disciplines);
+    renderIssueSection(currentData);
+    renderWalkthroughSection(currentData);
+
+    document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("ko-KR");
+  } catch (err) {
+    console.error(err);
+    showErrorBanner((err && err.message) ? err.message : String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "↻ Refresh";
   }
-
-  renderProjectInfo(currentData);
-  populateSelector(currentData.disciplines);
-  renderSelectedDiscipline();
-  renderProgressTable(currentData.disciplines);
-  renderKeyQty(currentData.disciplines);
-  renderIssueSection(currentData);
-  renderWalkthroughSection(currentData);
-
-  document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("ko-KR");
-  btn.disabled = false;
-  btn.textContent = "↻ Refresh";
 }
 
 document.getElementById("refreshBtn").addEventListener("click", refreshDashboard);
