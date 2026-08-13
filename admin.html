@@ -365,7 +365,7 @@ function parseGenericTableAfterLabel(rows, labelSubstring) {
   const loc = findLabelRow(rows, labelSubstring);
   if (!loc) return null;
   let headerRowIdx = -1;
-  for (let r = loc.row + 1; r < Math.min(loc.row + 6, rows.length); r++) {
+  for (let r = loc.row + 1; r < Math.min(loc.row + 10, rows.length); r++) {
     const nonEmpty = rows[r].filter(c => String(c).trim() !== "").length;
     if (nonEmpty >= 2) { headerRowIdx = r; break; }
   }
@@ -387,6 +387,52 @@ function parseGenericTableAfterLabel(rows, labelSubstring) {
     headers.forEach((h, i) => { obj[h] = String(rowVals[i] == null ? "" : rowVals[i]).trim(); });
     out.push(obj);
   }
+  return out.length ? out : null;
+}
+
+function parseWelderTable(rows) {
+  const loc = findLabelRow(rows, "welder mobilization status");
+  if (!loc) return null;
+
+  let subHeaderRow = -1;
+  for (let r = loc.row + 1; r < Math.min(loc.row + 10, rows.length); r++) {
+    const norms = rows[r].map(norm);
+    if (norms.includes("plan") && norms.includes("actual")) { subHeaderRow = r; break; }
+  }
+  if (subHeaderRow === -1) return null;
+  const subRow = rows[subHeaderRow];
+
+  let groupRow = null;
+  for (let r = subHeaderRow - 1; r > loc.row; r--) {
+    if (rows[r].some(c => String(c).trim() !== "")) { groupRow = rows[r]; break; }
+  }
+
+  const planCols = [];
+  subRow.forEach((c, i) => { if (norm(c) === "plan") planCols.push(i); });
+  if (planCols.length === 0) return null;
+
+  let dataRow = null;
+  for (let r = subHeaderRow + 1; r < Math.min(subHeaderRow + 5, rows.length); r++) {
+    if (rows[r].some(c => String(c).trim() !== "")) { dataRow = rows[r]; break; }
+  }
+  if (!dataRow) return null;
+
+  const out = [];
+  planCols.forEach((pc, idx) => {
+    const actualCol = pc + 1, varCol = pc + 2;
+    let groupName = "Group " + (idx + 1);
+    if (groupRow) {
+      for (let c = pc; c >= 0; c--) {
+        if (String(groupRow[c]).trim() !== "") { groupName = String(groupRow[c]).trim(); break; }
+      }
+    }
+    out.push({
+      "Group": groupName,
+      "Plan": String(dataRow[pc] == null ? "" : dataRow[pc]).trim(),
+      "Actual": String(dataRow[actualCol] == null ? "" : dataRow[actualCol]).trim(),
+      "Var.": String(dataRow[varCol] == null ? "" : dataRow[varCol]).trim()
+    });
+  });
   return out.length ? out : null;
 }
 
@@ -446,7 +492,7 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
     const { issueSummary, walkthroughSummary } = parseSummaryTables(rows);
     const issueList = parseIssueSheet(wb);
     const walkthroughList = parseWalkthroughSheet(wb);
-    const welderStatus = parseGenericTableAfterLabel(rows, "welder mobilization status");
+    const welderStatus = parseWelderTable(rows);
     const dailyKeyActivities = parseActivitiesListAfterLabel(rows, "daily key activities");
 
     parsedData = {
@@ -511,9 +557,17 @@ document.getElementById("debugBtn").addEventListener("click", () => {
   const issueSheetName = wb.SheetNames.find(n => norm(n) === "issue");
   const wtSheetName = wb.SheetNames.find(n => norm(n) === "walkthrough");
   const dashSheetName = wb.SheetNames.find(n => norm(n) === "dashboard") || wb.SheetNames[0];
+
+  const dashRows = XLSX.utils.sheet_to_json(wb.Sheets[dashSheetName], { header: 1, defval: "" });
+  const welderLoc = findLabelRow(dashRows, "welder mobilization status");
+  const activitiesLoc = findLabelRow(dashRows, "daily key activities");
+  out += `Label search in "${dashSheetName}" (${dashRows.length} total rows):\n`;
+  out += `  "welder mobilization status" -> ${welderLoc ? "found at row " + welderLoc.row + ", col " + welderLoc.col : "NOT FOUND"}\n`;
+  out += `  "daily key activities" -> ${activitiesLoc ? "found at row " + activitiesLoc.row + ", col " + activitiesLoc.col : "NOT FOUND"}\n\n`;
+
   out += issueSheetName ? dumpSheet(wb, issueSheetName, 25, 15) : '[no "Issue" sheet found]\n\n';
   out += wtSheetName ? dumpSheet(wb, wtSheetName, 25, 15) : '[no "Walkthrough" sheet found]\n\n';
-  out += dumpSheet(wb, dashSheetName, 60, 15);
+  out += dumpSheet(wb, dashSheetName, 200, 20);
 
   const el = document.getElementById("debugOutput");
   el.textContent = out;

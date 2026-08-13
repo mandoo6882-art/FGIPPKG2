@@ -107,6 +107,23 @@ function renderSelectedDiscipline() {
   badge.textContent = d.status;
   badge.className = "badge " + statusClass(d.status);
 
+  document.getElementById("sTotal").textContent = d.total.toLocaleString();
+  document.getElementById("sCompleted").textContent = d.completed.toLocaleString();
+  document.getElementById("sRemaining").textContent = d.remaining.toLocaleString();
+  document.getElementById("sDailyPlan").textContent = d.dailyPlan.toLocaleString();
+  document.getElementById("sDailyActual").textContent = d.dailyActual.toLocaleString();
+  const dailyVarEl = document.getElementById("sDailyVar");
+  dailyVarEl.textContent = d.dailyVar.toLocaleString();
+  dailyVarEl.style.color = d.dailyVar < 0 ? "#c0392b" : (d.dailyVar > 0 ? "#1f5fa5" : "");
+  document.getElementById("sCumPlan").textContent = d.cumPlan.toLocaleString();
+  document.getElementById("sCumActual").textContent = d.cumActual.toLocaleString();
+  const cumVarEl = document.getElementById("sCumVar");
+  cumVarEl.textContent = d.cumVar.toLocaleString();
+  cumVarEl.style.color = d.cumVar < 0 ? "#c0392b" : (d.cumVar > 0 ? "#1f5fa5" : "");
+  document.getElementById("sProgressPct").textContent = pct + "%";
+  document.getElementById("sMpPlan").textContent = d.mpPlan != null ? d.mpPlan.toLocaleString() : "-";
+  document.getElementById("sMpActual").textContent = d.mpActual != null ? d.mpActual.toLocaleString() : "-";
+
   renderPlanActualBar("dailyChart", "daily", d.dailyPlan, d.dailyActual);
   renderPlanActualBar("cumulativeChart", "cumulative", d.cumPlan, d.cumActual);
   renderPlanActualBar("mpChart", "mp", d.mpPlan, d.mpActual);
