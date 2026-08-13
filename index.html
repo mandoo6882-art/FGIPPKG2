@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Progress Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="topbar">
+      <div class="title-block">
+        <h1>DAILY PROGRESS DASHBOARD</h1>
+        <div id="projectInfo" class="project-info">Cut-off: -- | --</div>
+      </div>
+      <div class="controls">
+        <span id="lastUpdated" class="last-updated">Last updated: --</span>
+        <button id="refreshBtn" class="refresh-btn">↻ Refresh</button>
+      </div>
+    </header>
+
+    <section class="card selector-card">
+      <label for="disciplineSelect" class="selector-label">Select Key Qty</label>
+      <select id="disciplineSelect"></select>
+    </section>
+
+    <section class="kpi-row">
+      <div class="card kpi-progress">
+        <div class="kpi-label">Progress (선택 항목 기준)</div>
+        <div class="progress-bar-outer">
+          <div id="overallProgressBar" class="progress-bar-inner" style="width:0%">0%</div>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiTotal">Total 0</span> ·
+          <span id="kpiCompleted">Completed 0</span> ·
+          <span id="kpiRemaining">Remaining 0</span>
+        </div>
+      </div>
+      <div class="card kpi-small">
+        <div class="kpi-label">MP (Manpower)</div>
+        <div class="kpi-value"><span id="kpiMpActual">-</span> / <span id="kpiMpPlan">-</span></div>
+      </div>
+      <div class="card kpi-small">
+        <div class="kpi-label">오늘 상태</div>
+        <div class="kpi-value"><span id="kpiStatusBadge" class="badge">-</span></div>
+      </div>
+    </section>
+
+    <section class="charts-row">
+      <div class="card chart-card">
+        <h3>Daily (Plan vs Actual)</h3>
+        <canvas id="dailyChart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>Cumulative (Plan vs Actual)</h3>
+        <canvas id="cumulativeChart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>MP (Plan vs Actual)</h3>
+        <canvas id="mpChart"></canvas>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <h3>Progress Status (빨간색 = Behind / Yet)</h3>
+      <div class="table-scroll">
+        <table id="progressTable">
+          <thead>
+            <tr>
+              <th>Activity</th><th>Total</th><th>Completed</th><th>Remaining</th>
+              <th>Daily Plan</th><th>Daily Actual</th><th>Daily Var</th>
+              <th>Cum Plan</th><th>Cum Actual</th><th>Cum Var</th>
+              <th>MP Plan</th><th>MP Actual</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card keyqty-card">
+      <h3>Key Qty 오늘 달성 현황</h3>
+      <div class="keyqty-summary">
+        <div class="kq-stat kq-achieved"><span id="kqAchieved">0</span><label>Achieved</label></div>
+        <div class="kq-stat kq-not-achieved"><span id="kqNotAchieved">0</span><label>Not Achieved</label></div>
+        <div class="kq-stat kq-not-started"><span id="kqNotStarted">0</span><label>Not Started</label></div>
+      </div>
+      <div id="keyqtyGrid" class="keyqty-grid"></div>
+    </section>
+
+    <section class="bottom-row">
+      <div class="card bottom-card">
+        <h3>Issue Tracking (Discipline별)</h3>
+        <div class="pie-and-table">
+          <canvas id="issuePie"></canvas>
+          <table id="issueSummaryTable">
+            <thead><tr><th>Discipline</th><th>Total</th><th>Done</th><th>Open</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <table class="detail-table" id="issueListTable">
+          <thead><tr><th>No</th><th>Title</th><th>Discipline</th><th>Due Date</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card bottom-card">
+        <h3>Walkthrough Action Items (Responsibility별)</h3>
+        <div class="pie-and-table">
+          <canvas id="walkthroughPie"></canvas>
+          <table id="walkthroughSummaryTable">
+            <thead><tr><th>Resp.</th><th>Total</th><th>Done</th><th>Open</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <table class="detail-table" id="walkthroughListTable">
+          <thead><tr><th>No</th><th>Unit</th><th>Item</th><th>Resp.</th><th>Due Date</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Welder Mobilization Status</h3>
+      <p class="placeholder-note">실제 데이터 연결 후 표시될 영역입니다.</p>
+    </section>
+
+    <footer class="footnote">
+      데이터 출처: 담당자 입력 Excel (OneDrive 연동 예정) · 매일 1회 수동 새로고침
+    </footer>
+  </div>
+
+<script src="data-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
