@@ -22,6 +22,8 @@ const CONFIG = {
 // 실제 연결 후에는 이 값들이 매번 최신 값으로 대체됨.
 // ------------------------------------------------------------
 const MOCK_DATA = {
+  dailyKeyActivities: [],
+  welderStatus: [],
   disciplines: [
     { name: "Steel Structure", total: 12129, completed: 9991, remaining: 2138, dailyPlan: 37, dailyActual: 27, dailyVar: -10, cumPlan: 9775, cumActual: 9991, cumVar: 217, mpPlan: 620, mpActual: 522, status: "Ahead" },
     { name: "Equipment Erection", total: 369, completed: 96, remaining: 273, dailyPlan: 7, dailyActual: 0, dailyVar: -7, cumPlan: 208, cumActual: 96, cumVar: -112, mpPlan: 128, mpActual: 99, status: "Behind" },

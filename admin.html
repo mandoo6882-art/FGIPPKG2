@@ -55,6 +55,13 @@
   </div>
 
   <div class="step">
+    <h2>2-1. Issue/Walkthrough가 제대로 안 보일 때 (디버그)</h2>
+    <p class="note">아래 버튼을 누르면 "Issue"/"Walkthrough" 시트의 실제 내용을 그대로 텍스트로 보여줍니다. 자동 인식이 안 될 때, 이 텍스트를 복사해서 Claude에게 보내주면 정확히 고칠 수 있어요.</p>
+    <button id="debugBtn" disabled>Issue/Walkthrough 시트 원본 보기</button>
+    <pre id="debugOutput" style="display:none;"></pre>
+  </div>
+
+  <div class="step">
     <h2>3. 게시</h2>
     <button id="publishBtn" disabled>🚀 웹사이트에 게시</button>
     <button id="downloadBtn" disabled>data.json 파일로 저장 (수동용)</button>
@@ -64,6 +71,7 @@
 
 <script>
 let parsedData = null;
+let currentWorkbook = null;
 
 function norm(s) {
   return String(s == null ? "" : s).toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
@@ -342,6 +350,63 @@ function parseWalkthroughSheet(wb) {
   return out;
 }
 
+function findLabelRow(rows, labelSubstring, maxScanRows) {
+  const target = norm(labelSubstring);
+  const limit = Math.min(rows.length, maxScanRows || rows.length);
+  for (let r = 0; r < limit; r++) {
+    for (let c = 0; c < rows[r].length; c++) {
+      if (norm(rows[r][c]).includes(target)) return { row: r, col: c };
+    }
+  }
+  return null;
+}
+
+function parseGenericTableAfterLabel(rows, labelSubstring) {
+  const loc = findLabelRow(rows, labelSubstring);
+  if (!loc) return null;
+  let headerRowIdx = -1;
+  for (let r = loc.row + 1; r < Math.min(loc.row + 6, rows.length); r++) {
+    const nonEmpty = rows[r].filter(c => String(c).trim() !== "").length;
+    if (nonEmpty >= 2) { headerRowIdx = r; break; }
+  }
+  if (headerRowIdx === -1) return null;
+  const headerRow = rows[headerRowIdx];
+  let startCol = headerRow.findIndex(c => String(c).trim() !== "");
+  if (startCol === -1) return null;
+  let endCol = headerRow.length - 1;
+  while (endCol > startCol && String(headerRow[endCol]).trim() === "") endCol--;
+  const headers = [];
+  for (let c = startCol; c <= endCol; c++) headers.push(String(headerRow[c] || ("Col" + c)).trim());
+
+  const out = [];
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const rowVals = headers.map((h, i) => rows[r][startCol + i]);
+    const rowIsEmpty = rowVals.every(v => String(v == null ? "" : v).trim() === "");
+    if (rowIsEmpty) break;
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = String(rowVals[i] == null ? "" : rowVals[i]).trim(); });
+    out.push(obj);
+  }
+  return out.length ? out : null;
+}
+
+function parseActivitiesListAfterLabel(rows, labelSubstring) {
+  const loc = findLabelRow(rows, labelSubstring);
+  if (!loc) return null;
+  const out = [];
+  for (let r = loc.row + 1; r < Math.min(loc.row + 20, rows.length); r++) {
+    const cellsNonEmpty = rows[r].filter(c => String(c).trim() !== "");
+    if (cellsNonEmpty.length === 0) {
+      if (out.length > 0) break;
+      continue;
+    }
+    const combined = cellsNonEmpty.join(" ").trim();
+    if (combined.startsWith("■")) break;
+    out.push(combined);
+  }
+  return out.length ? out : null;
+}
+
 async function getPreviousData() {
   try {
     const res = await fetch("./data.json", { cache: "no-store" });
@@ -358,6 +423,8 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
   document.getElementById("downloadBtn").disabled = true;
   document.getElementById("publishBtn").disabled = true;
   document.getElementById("publishMsg").innerHTML = "";
+  document.getElementById("debugBtn").disabled = true;
+  document.getElementById("debugOutput").style.display = "none";
 
   try {
     if (typeof XLSX === "undefined") {
@@ -366,6 +433,8 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
 
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
+    currentWorkbook = wb;
+    document.getElementById("debugBtn").disabled = false;
     const sheetName = wb.SheetNames.find(n => norm(n) === "dashboard") || wb.SheetNames[0];
     const ws = wb.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
@@ -377,9 +446,13 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
     const { issueSummary, walkthroughSummary } = parseSummaryTables(rows);
     const issueList = parseIssueSheet(wb);
     const walkthroughList = parseWalkthroughSheet(wb);
+    const welderStatus = parseGenericTableAfterLabel(rows, "welder mobilization status");
+    const dailyKeyActivities = parseActivitiesListAfterLabel(rows, "daily key activities");
 
     parsedData = {
       projectInfo: (previous && previous.projectInfo) || { cutoff: "", categories: "" },
+      dailyKeyActivities: dailyKeyActivities || (previous && previous.dailyKeyActivities) || [],
+      welderStatus: welderStatus || (previous && previous.welderStatus) || [],
       disciplines: disciplines || (previous && previous.disciplines) || [],
       issueSummary: issueSummary || (previous && previous.issueSummary) || [],
       issueList: issueList || (previous && previous.issueList) || [],
@@ -392,6 +465,10 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
     if (!walkthroughSummary) addMsg("Walkthrough 요약은 이전 data.json 값을 그대로 유지했습니다.", "warn");
     if (!issueList) addMsg("Issue 상세 목록은 이전 data.json 값을 그대로 유지했습니다.", "warn");
     if (!walkthroughList) addMsg("Walkthrough 상세 목록은 이전 data.json 값을 그대로 유지했습니다.", "warn");
+    if (welderStatus) addMsg(`Welder Mobilization Status: ${welderStatus.length}행 인식 완료`, "ok");
+    else addMsg('"Welder Mobilization Status" 표를 찾지 못했습니다. 이전 값을 유지합니다.', "warn");
+    if (dailyKeyActivities) addMsg(`Daily Key Activities: ${dailyKeyActivities.length}개 항목 인식 완료`, "ok");
+    else addMsg('"Daily Key Activities" 항목을 찾지 못했습니다. 이전 값을 유지합니다.', "warn");
 
     document.getElementById("preview").textContent = JSON.stringify(parsedData, null, 2);
     document.getElementById("downloadBtn").disabled = false;
@@ -402,6 +479,45 @@ document.getElementById("fileInput").addEventListener("change", async (e) => {
     document.getElementById("preview").textContent = (err && err.stack) ? err.stack : String(err);
     console.error(err);
   }
+});
+
+function dumpSheet(wb, sheetName, maxRows, maxCols) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return `[sheet "${sheetName}" not found]\n`;
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  let out = `--- Sheet: ${sheetName} (${rows.length} rows) ---\n`;
+  const rowLimit = Math.min(rows.length, maxRows);
+  for (let r = 0; r < rowLimit; r++) {
+    const colLimit = Math.min(rows[r].length, maxCols);
+    const cells = [];
+    for (let c = 0; c < colLimit; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const cellObj = ws[addr];
+      const val = rows[r][c];
+      let cellText = String(val == null ? "" : val).trim();
+      if (cellObj && cellObj.f) cellText += ` {fx=${cellObj.f}}`;
+      cells.push(cellText);
+    }
+    out += `[${r}] ` + cells.join(" | ") + "\n";
+  }
+  if (rows.length > rowLimit) out += `... (${rows.length - rowLimit} more rows not shown)\n`;
+  return out + "\n";
+}
+
+document.getElementById("debugBtn").addEventListener("click", () => {
+  if (!currentWorkbook) return;
+  const wb = currentWorkbook;
+  let out = `Sheet names: ${wb.SheetNames.join(", ")}\n\n`;
+  const issueSheetName = wb.SheetNames.find(n => norm(n) === "issue");
+  const wtSheetName = wb.SheetNames.find(n => norm(n) === "walkthrough");
+  const dashSheetName = wb.SheetNames.find(n => norm(n) === "dashboard") || wb.SheetNames[0];
+  out += issueSheetName ? dumpSheet(wb, issueSheetName, 25, 15) : '[no "Issue" sheet found]\n\n';
+  out += wtSheetName ? dumpSheet(wb, wtSheetName, 25, 15) : '[no "Walkthrough" sheet found]\n\n';
+  out += dumpSheet(wb, dashSheetName, 60, 15);
+
+  const el = document.getElementById("debugOutput");
+  el.textContent = out;
+  el.style.display = "block";
 });
 
 document.getElementById("downloadBtn").addEventListener("click", () => {

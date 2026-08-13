@@ -112,6 +112,58 @@ function renderSelectedDiscipline() {
   renderPlanActualBar("mpChart", "mp", d.mpPlan, d.mpActual);
 }
 
+function renderDailyActivities(data) {
+  const list = document.getElementById("dailyActivitiesList");
+  list.innerHTML = "";
+  const items = data.dailyKeyActivities || [];
+  if (items.length === 0) {
+    list.innerHTML = '<li class="placeholder-note" style="list-style:none;margin-left:-18px;">No activities listed.</li>';
+    return;
+  }
+  items.forEach(text => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    list.appendChild(li);
+  });
+}
+
+function renderWelderStatus(data) {
+  const rows = data.welderStatus || [];
+  const table = document.getElementById("welderTable");
+  const emptyNote = document.getElementById("welderEmptyNote");
+  const thead = table.querySelector("thead");
+  const tbody = table.querySelector("tbody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  if (rows.length === 0) {
+    table.style.display = "none";
+    emptyNote.style.display = "block";
+    return;
+  }
+  table.style.display = "";
+  emptyNote.style.display = "none";
+
+  const columns = Object.keys(rows[0]);
+  const trHead = document.createElement("tr");
+  columns.forEach(c => {
+    const th = document.createElement("th");
+    th.textContent = c;
+    trHead.appendChild(th);
+  });
+  thead.appendChild(trHead);
+
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    columns.forEach(c => {
+      const td = document.createElement("td");
+      td.textContent = r[c] != null ? r[c] : "";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
 function renderProgressTable(disciplines) {
   const tbody = document.querySelector("#progressTable tbody");
   tbody.innerHTML = "";
@@ -151,7 +203,7 @@ function renderKeyQty(disciplines) {
     div.className = "kq-item " + state;
     const icon = state === "achieved" ? "✓" : state === "not-achieved" ? "✗" : "⟳";
     const label = state === "achieved" ? "Achieved" : state === "not-achieved" ? "Not Achieved" : "Not Started";
-    div.innerHTML = `<span class="kq-name">${d.name}</span>${icon} ${label}`;
+    div.innerHTML = `<span class="kq-name">${d.name}</span>${icon} ${label}<span class="kq-numbers">Plan ${d.dailyPlan.toLocaleString()} / Actual ${d.dailyActual.toLocaleString()}</span>`;
     grid.appendChild(div);
   });
   document.getElementById("kqAchieved").textContent = achieved;
@@ -278,10 +330,12 @@ async function refreshDashboard() {
     }
 
     renderProjectInfo(currentData);
+    renderDailyActivities(currentData);
     populateSelector(currentData.disciplines);
     renderSelectedDiscipline();
     renderProgressTable(currentData.disciplines);
     renderKeyQty(currentData.disciplines);
+    renderWelderStatus(currentData);
     renderIssueSection(currentData);
     renderWalkthroughSection(currentData);
 
